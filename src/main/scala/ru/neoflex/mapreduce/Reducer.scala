@@ -4,14 +4,14 @@ import akka.actor.{Actor, Props}
 
 import scala.collection.mutable
 
-trait Reduce[A, K, B] {
+trait Reducer extends DataTypes {
 
-  reduce: Master[A, K, B] with Writer[A, K, B] =>
+  reduce: Master with Writer =>
 
-  class ReduceExecutor(reduce: (B, B) => B, outputPath: String) extends Actor {
+  class ReduceExecutor(reduce: Reduce, outputPath: String) extends Actor {
 
     private val dataWriter = context.actorOf(DataWriter.props(outputPath))
-    private val reducedData = mutable.Map.empty[K, B]
+    private val reducedData = mutable.Map.empty[Key, MappedValue]
 
     import MasterExecutor._
     import ReduceExecutor._
@@ -32,9 +32,9 @@ trait Reduce[A, K, B] {
   }
 
   object ReduceExecutor {
-    def props(reduce: (B, B) => B, outputPath: String) = Props(new ReduceExecutor(reduce, outputPath))
+    def props(reduce: Reduce, outputPath: String) = Props(new ReduceExecutor(reduce, outputPath))
 
-    case class ReduceData(key: K, value: B)
+    case class ReduceData(key: Key, value: MappedValue)
   }
 
 }

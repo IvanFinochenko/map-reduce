@@ -1,8 +1,12 @@
 package ru.neoflex.mapreduce
 
-class MapReduceCake[A, K, B] extends Master[A, K, B]
-    with Shuffle[A, K, B]
-    with Map[A, K, B]
-    with Reader[A, K, B]
-    with Reduce[A, K, B]
-    with Writer[A, K, B]
+class MapReduceCake[A, K, B] extends Master
+    with Shuffle
+    with Map
+    with Reader
+    with Reducer
+    with Writer {
+  override type ParsedValue = A
+  override type Key = K
+  override type MappedValue = B
+}

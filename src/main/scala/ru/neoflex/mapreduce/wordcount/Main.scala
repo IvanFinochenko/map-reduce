@@ -7,29 +7,27 @@ object Main extends App {
 
   val actorSystem = ActorSystem("word-count")
   val mapReduce = new MapReduceCake[String, String, WordCount]
-  val inputpath = "/home/ifinochenko/Projects/courses/map-reduce/src/main/resources/source"
-  val outputPath = "/home/ifinochenko/Projects/courses/map-reduce/src/main/resources/output"
-  actorSystem.actorOf(mapReduce.MasterExecutor.props(
-    identity,
-    map,
-    (w1, w2) => WordCount(w1.word, w1.count + w2.count),
-    inputpath,
-    outputPath,
-    1,
-    1,
-    actorSystem
-  ))
+  val inputPath = "/home/ivan/Projects/map-reduce/src/main/resources/source"
+  val outputPath = "/home/ivan/Projects/map-reduce/src/main/resources/output"
+  val wordCountOperations = mapReduce.MasterExecutor.Operations(identity, map, reduce)
+  val config = mapReduce.MasterExecutor.Config(inputPath, outputPath, 1, 1)
 
-  private val a = Seq(".", ",", "!", "?", "(", ")", "-", "“", "”",  ":", ";")
+  actorSystem.actorOf(mapReduce.MasterExecutor.props(wordCountOperations, config, actorSystem))
 
-  def map(str: String) = {
-    str.split(" ").toList
+  private val punctuationMarks = Seq(".", ",", "!", "?", "(", ")", "-", "“", "”",  ":", ";")
+
+  def map(str: String): Seq[(String, WordCount)] = {
+    str
+        .split(" ")
+        .toList
         .map { word =>
-          val w = a.foldLeft(word) { case (c, v) => c.replace(v, "") }
-          w  -> WordCount(w, 1)
+          val pureWord = punctuationMarks.foldLeft(word) { case (w, mark) => w.replace(mark, "") }
+          pureWord -> WordCount(pureWord, 1)
         }
   }
 
-
+  def reduce(wordCount1: WordCount, wordCount2: WordCount): WordCount = {
+    WordCount(wordCount1.word, wordCount1.count + wordCount2.count)
+  }
 
 }

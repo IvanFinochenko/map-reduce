@@ -6,11 +6,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
 import scala.io.{BufferedSource, Source}
 
-trait Reader[A, K, B] {
+trait Reader {
 
-  data: Map[A, K, B] with Master[A, K, B] =>
+  data: Map with Master =>
 
-  class DataReader(parse: String => A, initPartition: File, map: A => Seq[(K, B)], shuffle: ActorRef) extends Actor with ActorLogging {
+  class DataReader(parse: Parse, initPartition: File, map: Map, shuffle: ActorRef) extends Actor with ActorLogging {
 
     import DataReader._
     import MapExecutor._
@@ -39,7 +39,7 @@ trait Reader[A, K, B] {
 
   case object DataReader {
 
-    def props(parse: String => A, initPath: File, map: A => Seq[(K, B)], shuffle: ActorRef): Props = {
+    def props(parse: Parse, initPath: File, map: Map, shuffle: ActorRef): Props = {
       Props(new DataReader(parse, initPath, map, shuffle))
     }
 

@@ -4,31 +4,27 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 
-trait Master[A, K, B] {
+trait Master extends DataTypes {
 
-  master: Reader[A, K, B] with Shuffle[A, K, B] =>
+  master: Reader with Shuffle =>
 
-  class MasterExecutor(
-      parse: String => A,
-      map: A => Seq[(K, B)],
-      reduce: (B, B) => B,
-      inputPath: String,
-      outputPath: String,
-      countMappers: Int,
-      countReducers: Int,
-      actorSystem: ActorSystem) extends Actor with ActorLogging {
+  import MasterExecutor._
+
+  class MasterExecutor(val operations: Operations, val config: Config, val actorSystem: ActorSystem)
+      extends Actor with ActorLogging {
 
     private var finishedExecutors = 0
     private var processedPartitions = 0
 
-    private val shuffleExecutor = context.actorOf(ShuffleExecutor.props(countReducers, reduce, outputPath))
-    private val source = new File(inputPath)
+    private val shuffleExecutor = context.actorOf(
+      ShuffleExecutor.props(config.countReducers, operations.reduce, config.outputPath)
+    )
+    private val source = new File(config.inputPath)
     private val partitions = getListOfFiles(source)
     private val dataReaders = partitions
-        .take(countMappers)
-        .map(file => context.actorOf(DataReader.props(parse, file, map, shuffleExecutor)))
+        .take(config.countMappers)
+        .map(file => context.actorOf(DataReader.props(operations.parse, file, operations.map, shuffleExecutor)))
 
-    import MasterExecutor._
     import DataReader._
 
     override def receive: Receive = {
@@ -42,27 +38,24 @@ trait Master[A, K, B] {
         }
       case End =>
         finishedExecutors = finishedExecutors + 1
-        if (finishedExecutors == countReducers) {
+        if (finishedExecutors == config.countReducers) {
           log.info("Job finished successfully")
           actorSystem.terminate()
         }
     }
 
     private def getListOfFiles(dir: File): Vector[File] = dir.listFiles.filter(_.isFile).toVector
+
   }
 
   object MasterExecutor {
 
-    def props(
-        parse: String => A,
-        map: A => Seq[(K, B)],
-        reduce: (B, B) => B,
-        inputPath: String,
-        outputPath: String,
-        countMappers: Int,
-        countReducers: Int,
-        actorSystem: ActorSystem): Props = {
-      Props(new MasterExecutor(parse, map, reduce, inputPath, outputPath, countMappers, countReducers, actorSystem))
+    case class Operations(parse: Parse, map: Map, reduce: Reduce)
+
+    case class Config(inputPath: String, outputPath: String, countMappers: Int, countReducers: Int)
+
+    def props(operations: Operations, config: Config, actorSystem: ActorSystem): Props = {
+      Props(new MasterExecutor(operations, config, actorSystem))
     }
 
     case object End

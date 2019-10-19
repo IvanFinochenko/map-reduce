@@ -4,9 +4,9 @@ import java.io.{File, PrintWriter}
 
 import akka.actor.{Actor, Props}
 
-trait Writer[A, K, B] {
+trait Writer extends DataTypes {
 
-  writer: Master[A, K, B] =>
+  writer: Master =>
 
   class DataWriter(path: String) extends Actor {
 
@@ -27,7 +27,7 @@ trait Writer[A, K, B] {
 
     def props(path: String): Props = Props(new DataWriter(path))
 
-    case class WriteData(data: B)
+    case class WriteData(data: MappedValue)
   }
 
 }

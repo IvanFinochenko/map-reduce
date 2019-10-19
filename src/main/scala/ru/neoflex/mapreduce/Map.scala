@@ -2,11 +2,11 @@ package ru.neoflex.mapreduce
 
 import akka.actor.{Actor, ActorRef, Props}
 
-trait Map[A, K, B] {
+trait Map extends DataTypes {
 
-  self: Reader[A, K, B] with Master[A, K, B] with Shuffle[A, K, B] =>
+  self: Reader with Master with Shuffle =>
 
-  class MapExecutor(map: A => Seq[(K, B)], shuffle: ActorRef) extends Actor {
+  class MapExecutor(map: Map, shuffle: ActorRef) extends Actor {
 
     import MapExecutor._
     import DataReader._
@@ -22,10 +22,10 @@ trait Map[A, K, B] {
   }
 
   object MapExecutor {
-    case class Data(data: A)
+    case class Data(data: ParsedValue)
     case object LastDone
 
-    def props(map: A => Seq[(K, B)], reduceRouter: ActorRef): Props = {
+    def props(map: Map, reduceRouter: ActorRef): Props = {
       Props(new MapExecutor(map, reduceRouter))
     }
   }

@@ -4,13 +4,16 @@ import akka.actor.{Actor, ActorRef, Props}
 
 import scala.collection.mutable.ArrayBuffer
 
-trait Shuffle[A, K, B] {
+trait Shuffle extends DataTypes {
 
-  shuffle: Master[A, K, B] with Reduce[A, K, B] =>
+  shuffle: Master with Reducer =>
 
-  class ShuffleExecutor(val countReducers: Int, val reduce: (B, B) => B, outputPath: String) extends Actor {
+  class ShuffleExecutor(
+      val countReducers: Int,
+      val reduce: Reduce,
+      outputPath: String) extends Actor {
 
-    private var keysReducers = ArrayBuffer.empty[(Set[K], ActorRef)]
+    private var keysReducers = ArrayBuffer.empty[(Set[Key], ActorRef)]
     private var currentReducer: Int = 0
 
     import ShuffleExecutor._
@@ -40,11 +43,11 @@ trait Shuffle[A, K, B] {
 
   case object ShuffleExecutor {
 
-    def props(countReducers: Int, reduce: (B, B) => B, outputPath: String): Props = {
+    def props(countReducers: Int, reduce: Reduce, outputPath: String): Props = {
       Props(new ShuffleExecutor(countReducers, reduce, outputPath))
     }
 
-    case class ShuffleData(key: K, value: B)
+    case class ShuffleData(key: Key, value: MappedValue)
   }
 
 }
