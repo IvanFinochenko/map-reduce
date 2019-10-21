@@ -1,6 +1,6 @@
 package ru.neoflex.mapreduce
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -11,7 +11,7 @@ trait Shuffle extends DataTypes {
   class ShuffleExecutor(
       val countReducers: Int,
       val reduce: Reduce,
-      outputPath: String) extends Actor {
+      outputPath: String) extends Actor with ActorLogging {
 
     private var keysReducers = ArrayBuffer.empty[(Set[Key], ActorRef)]
     private var currentReducer: Int = 0
@@ -39,6 +39,15 @@ trait Shuffle extends DataTypes {
         }
       case End => keysReducers.foreach { case (_, reducer) => reducer.forward(End) }
     }
+
+    override def preStart(): Unit = {
+      log.info("ShuffleExecutor is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("ShuffleExecutor is stopped")
+    }
+
   }
 
   case object ShuffleExecutor {

@@ -35,6 +35,14 @@ trait Reader {
       source.close()
     }
 
+    override def preStart(): Unit = {
+      log.info("DataReader is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("DataReader is stopped")
+    }
+
   }
 
   case object DataReader {

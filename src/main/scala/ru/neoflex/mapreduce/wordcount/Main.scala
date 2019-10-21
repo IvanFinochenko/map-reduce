@@ -10,7 +10,7 @@ object Main extends App {
   val inputPath = "/home/ivan/Projects/map-reduce/src/main/resources/source"
   val outputPath = "/home/ivan/Projects/map-reduce/src/main/resources/output"
   val wordCountOperations = mapReduce.MasterExecutor.Operations(identity, map, reduce)
-  val config = mapReduce.MasterExecutor.Config(inputPath, outputPath, 1, 1)
+  val config = mapReduce.MasterExecutor.Config(inputPath, outputPath, 3, 1)
 
   actorSystem.actorOf(mapReduce.MasterExecutor.props(wordCountOperations, config, actorSystem))
 

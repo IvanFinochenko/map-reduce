@@ -1,12 +1,12 @@
 package ru.neoflex.mapreduce
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 
 trait Map extends DataTypes {
 
   self: Reader with Master with Shuffle =>
 
-  class MapExecutor(map: Map, shuffle: ActorRef) extends Actor {
+  class MapExecutor(map: Map, shuffle: ActorRef) extends Actor with ActorLogging {
 
     import MapExecutor._
     import DataReader._
@@ -17,6 +17,14 @@ trait Map extends DataTypes {
       case Data(data) => map(data).foreach { case (key, value) => shuffle ! ShuffleData(key, value) }
       case Last => context.parent ! LastDone
       case End => shuffle.forward(End)
+    }
+
+    override def preStart(): Unit = {
+      log.info("MapExecutor is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("MapExecutor is stopped")
     }
 
   }

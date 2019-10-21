@@ -2,13 +2,13 @@ package ru.neoflex.mapreduce
 
 import java.io.{File, PrintWriter}
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 
 trait Writer extends DataTypes {
 
   writer: Master =>
 
-  class DataWriter(path: String) extends Actor {
+  class DataWriter(path: String) extends Actor with ActorLogging {
 
     private val file = new PrintWriter(new File(path))
 
@@ -21,6 +21,15 @@ trait Writer extends DataTypes {
         file.close()
         sender() ! End
     }
+
+    override def preStart(): Unit = {
+      log.info("DataWriter is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("DataWriter is stopped")
+    }
+
   }
 
   object DataWriter {

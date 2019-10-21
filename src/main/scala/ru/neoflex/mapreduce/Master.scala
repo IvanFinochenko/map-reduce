@@ -14,13 +14,13 @@ trait Master extends DataTypes {
       extends Actor with ActorLogging {
 
     private var finishedExecutors = 0
-    private var processedPartitions = 0
+    private var sentPartitions = config.countMappers
 
     private val shuffleExecutor = context.actorOf(
       ShuffleExecutor.props(config.countReducers, operations.reduce, config.outputPath)
     )
     private val source = new File(config.inputPath)
-    private val partitions = getListOfFiles(source)
+    private val partitions = getListOfFiles(source).sorted
     private val dataReaders = partitions
         .take(config.countMappers)
         .map(file => context.actorOf(DataReader.props(operations.parse, file, operations.map, shuffleExecutor)))
@@ -30,11 +30,14 @@ trait Master extends DataTypes {
     override def receive: Receive = {
       case Free(dataReader) =>
         log.info(s"$dataReader is free")
-        processedPartitions = processedPartitions + 1
-        if (processedPartitions == partitions.size) {
+        if (sentPartitions == partitions.size) {
+          log.info("Send all data readers End")
           dataReaders.foreach(_ ! End)
         } else {
-          dataReader ! NextPartition(partitions(processedPartitions))
+          val nextPartition = partitions(sentPartitions)
+          log.info(s"send next patition = $nextPartition to $dataReader")
+          dataReader ! NextPartition(nextPartition)
+          sentPartitions = sentPartitions + 1
         }
       case End =>
         finishedExecutors = finishedExecutors + 1
@@ -45,6 +48,14 @@ trait Master extends DataTypes {
     }
 
     private def getListOfFiles(dir: File): Vector[File] = dir.listFiles.filter(_.isFile).toVector
+
+    override def preStart(): Unit = {
+      log.info("Master executor is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("Master executor is stopped")
+    }
 
   }
 

@@ -1,6 +1,6 @@
 package ru.neoflex.mapreduce
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 
 import scala.collection.mutable
 
@@ -8,7 +8,7 @@ trait Reducer extends DataTypes {
 
   reduce: Master with Writer =>
 
-  class ReduceExecutor(reduce: Reduce, outputPath: String) extends Actor {
+  class ReduceExecutor(reduce: Reduce, outputPath: String) extends Actor with ActorLogging {
 
     private val dataWriter = context.actorOf(DataWriter.props(outputPath))
     private val reducedData = mutable.Map.empty[Key, MappedValue]
@@ -27,6 +27,14 @@ trait Reducer extends DataTypes {
       case End =>
         reducedData.foreach { case (_, data) => dataWriter ! WriteData(data) }
         dataWriter.forward(End)
+    }
+
+    override def preStart(): Unit = {
+      log.info("ReduceExecutor is starting")
+    }
+
+    override def postStop(): Unit = {
+      log.info("ReduceExecutor is stopped")
     }
 
   }
