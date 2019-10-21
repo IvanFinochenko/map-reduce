@@ -23,7 +23,11 @@ trait Master extends DataTypes {
     private val partitions = getListOfFiles(source).sorted
     private val dataReaders = partitions
         .take(config.countMappers)
-        .map(file => context.actorOf(DataReader.props(operations.parse, file, operations.map, shuffleExecutor)))
+        .zipWithIndex
+        .map { case (file, index) =>
+          val name = s"DataReader-$index"
+          context.actorOf(DataReader.props(operations.parse, file, operations.map, shuffleExecutor), name)
+        }
 
     import DataReader._
 
