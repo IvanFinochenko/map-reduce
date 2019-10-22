@@ -4,8 +4,6 @@ import java.io.File
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 
-import scala.util.Try
-
 trait Master extends DataTypes {
 
   master: Reader with Shuffle =>
@@ -72,8 +70,16 @@ trait Master extends DataTypes {
     case class Config(inputPath: String, outputPath: String, countMappers: Int, countReducers: Int)
 
     def props(operations: Operations, config: Config, actorSystem: ActorSystem): Either[String, Props] = {
-      val partitions = getListOfFiles(config.inputPath).map(_.sorted)
-      partitions.map(x => Props(new MasterExecutor(operations, config, actorSystem, x)))
+      for {
+        partitions <- getListOfFiles(config.inputPath).map(_.sorted)
+        _ <- if (new File(config.outputPath).exists()) {
+          Right()
+        } else {
+          Left(s"Output Path ${config.outputPath} is not exists")
+        }
+      } yield {
+        Props(new MasterExecutor(operations, config, actorSystem, partitions))
+      }
     }
 
     private def getListOfFiles(inputPath: String): Either[String, Vector[File]] = {
@@ -81,7 +87,7 @@ trait Master extends DataTypes {
       if (dir.exists()) {
         Right(dir.listFiles.filter(_.isFile).toVector)
       } else {
-        Left(s"Path $inputPath is not exists")
+        Left(s"Input Path $inputPath is not exists")
       }
     }
 
