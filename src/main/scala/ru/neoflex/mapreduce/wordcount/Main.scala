@@ -7,13 +7,13 @@ object Main extends App {
 
   val actorSystem = ActorSystem("word-count")
   val mapReduce = new MapReduce[String, String, WordCount]
-  val inputPath = "/home/ivan/Projects/map-reduce/src/main/resources/source"
-  val outputPath = "/home/ivan/Projects/map-reduce/src/main/resources/output"
+  val inputPath = s"${System.getProperty("user.dir")}/src/main/resources/source"
+  val outputPath = s"${System.getProperty("user.dir")}/src/main/resources/output"
   val wordCountOperations = mapReduce.MasterExecutor.Operations(identity, map, reduce)
   val config = mapReduce.MasterExecutor.Config(inputPath, outputPath, 3, 2)
 
   mapReduce.MasterExecutor
-      .props(wordCountOperations, config, actorSystem)
+      .props(wordCountOperations, config)
       .fold(
         { errorMessage =>
           actorSystem.log.error(errorMessage)
