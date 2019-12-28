@@ -13,7 +13,6 @@ trait Master extends DataTypes {
   class MasterExecutor(
       val operations: Operations,
       val config: Config,
-      val actorSystem: ActorSystem,
       val partitions: Vector[File]) extends Actor with ActorLogging {
 
     private var finishedExecutors = 0
@@ -49,7 +48,7 @@ trait Master extends DataTypes {
         finishedExecutors = finishedExecutors + 1
         if (finishedExecutors == config.countReducers) {
           log.info("Job finished successfully")
-          actorSystem.terminate()
+          context.system.terminate()
         }
     }
 
@@ -69,7 +68,7 @@ trait Master extends DataTypes {
 
     case class Config(inputPath: String, outputPath: String, countMappers: Int, countReducers: Int)
 
-    def props(operations: Operations, config: Config, actorSystem: ActorSystem): Either[String, Props] = {
+    def props(operations: Operations, config: Config): Either[String, Props] = {
       for {
         partitions <- getListOfFiles(config.inputPath).map(_.sorted)
         _ <- if (new File(config.outputPath).exists()) {
@@ -78,7 +77,7 @@ trait Master extends DataTypes {
           Left(s"Output Path ${config.outputPath} is not exists")
         }
       } yield {
-        Props(new MasterExecutor(operations, config, actorSystem, partitions))
+        Props(new MasterExecutor(operations, config, partitions))
       }
     }
 
